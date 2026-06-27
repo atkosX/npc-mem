@@ -187,3 +187,4 @@ Arrow keys move, Space/Enter talks, Esc leaves. (Backend must be running on :800
 - **Validator quality** — confabulation means generated facts can't be trusted raw; the validator
   is on the critical path, not optional polish.
 # npc-mem
+# npc-mem
