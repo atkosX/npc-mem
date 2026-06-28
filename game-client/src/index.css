@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+/* Neighbourhood Echoes — "detective board + visual novel" palette.
+   Tailwind v4 design tokens; each becomes a utility (bg-ink, text-paper, ...). */
+@theme {
+  --color-ink: #1c1917;
+  --color-ink-soft: #44403c;
+  --color-paper: #f5f0e6;
+  --color-paper-2: #ebe3d3;
+  --color-edge: #d8cdb8;
+
+  --color-maya: #c2410c; /* warm terracotta — the bakery */
+  --color-sam: #1d4ed8;  /* anxious blue */
+  --color-jules: #7e22ce;/* gossip purple */
+
+  --color-trust: #15803d;
+  --color-suspicion: #b91c1c;
+  --color-accent: #b45309;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(180, 83, 9, 0.08), transparent 60%),
+    var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle paper grain for the board feel. */
+.paper-grain {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(28, 25, 23, 0.015) 0px,
+      rgba(28, 25, 23, 0.015) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.35s ease both;
+}

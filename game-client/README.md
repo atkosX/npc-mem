@@ -1,65 +1,58 @@
-# Neighbourhood Echoes — Game Client (Phase 2)
+# Neighbourhood Echoes — Game Client
 
-A minimal Godot 4 top-down scene: walk up to an NPC, talk to them, and their reply
-comes from the **backend memory engine** (`../backend`). Same question to different
-NPCs → different answers, now inside the game.
+React + Vite + TypeScript browser game for the Cognee-powered NPC-memory mystery.
+A clickable detective board: map → conversations with choices → case notebook →
+**Memory Debugger** that shows which NPC remembers which fact.
 
-## Prerequisites
+> This replaced the earlier Godot prototype. The pivot rationale and full design are
+> in the repo root `README.md` and the hackathon plan.
 
-1. **Godot 4.x** — download from <https://godotengine.org/download> (the standard,
-   non-.NET build is fine). This project targets Godot 4.x; it will **not** open in 3.x.
-2. **Backend running** (in another terminal):
-   ```bash
-   cd ../backend
-   .venv/bin/uvicorn api:app --port 8000
-   ```
-   Memories must already be seeded (`.venv/bin/python ask.py --reset --seed`).
+## Stack
+
+- **React 19 + Vite 8 + TypeScript**
+- **Tailwind CSS v4** (via `@tailwindcss/vite`) — theme tokens live in `src/index.css`
+- **Zustand** for state (`src/state/gameStore.ts`)
+- No game engine, no router — three screens switch on a `screen` field in the store.
 
 ## Run
 
-1. Open Godot → **Import** → select this `game-client/` folder (pick `project.godot`).
-2. Let Godot import assets on first open (a `.godot/` folder appears — that's normal).
-3. Press **F5** (Play). 
+```bash
+npm install
+npm run dev          # http://localhost:5173
+```
 
-## Controls
+The backend must be running on `http://127.0.0.1:8000` (see `../backend/README.md`).
+Override the API base with `VITE_API_URL` if needed:
 
-| Key | Action |
-|---|---|
-| Arrow keys | Move |
-| Space / Enter | Talk to the nearest NPC (Maya = red, Sam = blue, Jules = green) |
-| Type + Enter | Send your line to that NPC |
-| Esc | Leave the conversation |
+```bash
+VITE_API_URL=http://127.0.0.1:8000 npm run dev
+```
 
-Try asking each NPC *"Who broke into the shed?"* and watch them diverge.
+`npm run build` runs `tsc -b && vite build` (type-check + production bundle).
 
-## What this proves (and what it doesn't yet)
+## Layout
 
-✅ Player walks the neighbourhood and holds **memory-backed conversations** — the NPC
-replies are generated from each character's own Cognee dataset via `/dialogue/respond`.
+```
+src/
+  api/client.ts        typed fetch wrapper, one fn per backend endpoint
+  state/gameStore.ts   Zustand store; caches /game/state, drives all calls
+  types.ts             TS types mirroring the backend JSON
+  data/                display-only NPC + location metadata (canon is backend)
+  components/          MapView, LocationCard, NPCPanel, DialogueBox, ChoiceButton,
+                       RelationshipMeter, CaseNotebook, MemoryDebugger, HowItWorks
+  pages/               StartPage, GamePage, EndingPage
+```
 
-⬜ **Not yet:** the NPC remembering *new* things you say this session. `/dialogue/respond`
-currently only *recalls*; it does not write your line back as a new memory. That
-write-back is the next increment (and on the Gemini free tier it's quota-heavy, so
-it likely wants session-memory or billing first).
+## The demo loop
 
-## How it's wired
+1. **Start** → map of Maple Street (Bakery / Garden / Tea Stall).
+2. Talk to **Maya**, earn trust until she admits she lost the shed key, then **promise** to keep it secret.
+3. Go to **Jules** and either keep quiet or **tell the secret** (betrayal).
+4. **Advance to Day 2** — if you told Jules, the rumour spreads and reaches Maya.
+5. Talk to Maya again — she **confronts** you (betrayal) or **confides a clue** (kept secret).
+6. **Conclude the Case** for the ending. Open the **Memory Debugger** any time to show
+   exactly which NPC's Cognee dataset holds which memory.
 
-| File | Role |
-|---|---|
-| `project.godot` | Config; autoloads `GameApi` + `DialogueUI`; main scene = `Main.tscn` |
-| `Main.tscn` | The world: Player + Maya/Sam/Jules (each in the `npcs` group) |
-| `scripts/GameApi.gd` | Autoload — POSTs to `http://127.0.0.1:8000/dialogue/respond` |
-| `scripts/DialogueUI.gd` | Autoload — builds the dialogue box in code, shows replies |
-| `scripts/Player.gd` | Arrow-key movement; Space/Enter opens dialogue with nearest NPC |
-| `scripts/NPC.gd` | Holds `npc_id` / `npc_name` (set per-node in `Main.tscn`) |
-
-The dialogue UI is built entirely in code (no UI nodes in the scene) and input uses
-Godot's built-in actions — so there's no input-map or UI wiring to set up by hand.
-
-## If something breaks
-
-Paste the **Godot Output/Debugger panel** text back to me. Common ones:
-- *"Connection refused" / red Error in the box* → backend isn't running on :8000.
-- *Sprites invisible* → reopen the project so Godot finishes importing `icon.svg`.
-- *Quota error in the reply* → today's Gemini free-tier cap; rotate `LLM_MODEL` in
-  `backend/.env` or enable billing (see `backend/README.md`).
+The dialogue line is LLM-generated from recalled memory; if the model is unavailable
+or a guardrail trips, an authored fallback line is shown (badged `TEMPLATE`). Story
+truth, flags, and relationships are always decided by the backend, never the model.

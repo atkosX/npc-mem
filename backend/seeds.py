@@ -54,4 +54,10 @@ SEEDS = {
         "Someone was seen near the community garden shed before noon on the day it was broken into.",
         "There is talk on the street that the shed break-in was no accident.",
     ],
+    # The player's own dataset. Promises the player makes are written here at
+    # runtime (see story.py / memory.remember_event) so they surface in recall.
+    # Seeded with one baseline line so the dataset exists before any write-back.
+    "player_profile": [
+        "The player recently arrived on Maple Street and is asking everyone about the shed break-in.",
+    ],
 }

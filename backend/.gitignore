@@ -2,5 +2,6 @@
 .venv/
 .cognee_system/
 .cognee_data/
+game_state.json
 __pycache__/
 *.pyc

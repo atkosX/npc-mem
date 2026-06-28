@@ -6,7 +6,11 @@ can never retrieve another NPC's private memories — that is what makes them
 answer the same question differently.
 """
 
-SHARED = ["neighbourhood_world_lore", "shared_neighbourhood_rumours"]
+# Shared recall scope for every NPC: static world lore, public rumours, and the
+# player_profile (where promises the player makes are written at runtime). Because
+# recall(datasets=[...]) is leakage-free, this is the ONLY cross-NPC channel — an
+# NPC learns another's secret only if gossip spreads it into shared_rumours.
+SHARED = ["neighbourhood_world_lore", "shared_neighbourhood_rumours", "player_profile"]
 
 NPCS = {
     "maya": {
