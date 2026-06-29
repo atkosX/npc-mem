@@ -36,14 +36,15 @@ def _initial_state() -> dict:
             "mayaRevealedSamClue": False,
         },
         "notebook": [],
+        "cluesFound": [],      # clue ids collected — the win goal (X/5)
         "ledger": [],          # structured memory events (plan §6) — for the debugger
         "convo": {             # current dialogue node per NPC (entry node for day 1)
             "maya": "maya_start",
             "sam": "sam_start",
             "jules": "jules_start",
         },
-        "ended": False,
-        "ending": None,
+        "solved": None,        # bool once the player makes an accusation
+        "result": None,        # scored outcome (see story.compute_result)
     }
 
 
@@ -149,6 +150,10 @@ async def apply_choice(npc_id: str, choice_id: str) -> dict:
         if line not in state["notebook"]:
             state["notebook"].append(line)
 
+    # Clues collected toward solving the case (the win goal).
+    newly_found = [c for c in eff.get("clues", []) if c not in state["cluesFound"]]
+    state["cluesFound"].extend(newly_found)
+
     # Memory write-back → Cognee datasets + the deterministic ledger.
     for event in eff.get("events", []):
         await _record_event(event)
@@ -156,7 +161,8 @@ async def apply_choice(npc_id: str, choice_id: str) -> dict:
     # Advance the conversation node.
     state["convo"][npc_id] = choice.get("next") or state["convo"][npc_id]
     _save()
-    return state
+    # return the just-found clue ids too, so the API can surface a "new clue!" toast
+    return state, newly_found
 
 
 async def _record_event(event: dict) -> None:
@@ -190,11 +196,11 @@ async def advance_day() -> dict:
     return state
 
 
-def conclude() -> dict:
-    """End the game and compute the ending from final flags (plan §9)."""
+def solve(theory_id: str) -> dict:
+    """Make the accusation: score clues + correctness + trust into a result."""
     state = _load()
-    ending = story.compute_ending(state)
-    state["ended"] = True
-    state["ending"] = ending
+    result = story.compute_result(state, theory_id)
+    state["solved"] = result["solvedCorrectly"]
+    state["result"] = result
     _save()
     return state

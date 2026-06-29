@@ -1,5 +1,6 @@
 // Typed fetch wrapper around the FastAPI backend (one function per endpoint).
 import type {
+  Catalog,
   GameState,
   MemoryEvent,
   NpcId,
@@ -38,14 +39,20 @@ export const api = {
     }),
 
   choose: (npcId: NpcId, choiceId: string) =>
-    req<{ state: GameState; nextNodeId: string }>('/game/choose', {
+    req<{ state: GameState; nextNodeId: string; newClues: string[] }>('/game/choose', {
       method: 'POST',
       body: JSON.stringify({ npcId, choiceId }),
     }),
 
   advanceDay: () => req<GameState>('/day/advance', { method: 'POST' }),
 
-  conclude: () => req<GameState>('/game/conclude', { method: 'POST' }),
+  catalog: () => req<Catalog>('/game/catalog'),
+
+  solve: (theoryId: string) =>
+    req<GameState>('/game/solve', {
+      method: 'POST',
+      body: JSON.stringify({ theoryId }),
+    }),
 
   debugMemories: (npcId: NpcId) =>
     req<{ npcId: NpcId; memories: MemoryEvent[] }>(`/debug/memories/${npcId}`),

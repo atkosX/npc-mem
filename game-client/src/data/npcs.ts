@@ -19,7 +19,7 @@ export const NPCS: Record<NpcId, NpcDisplay> = {
     emoji: '🧁',
     location: 'bakery',
     colorVar: 'var(--color-maya)',
-    accent: '#c2410c',
+    accent: '#ff8a4c',
   },
   sam: {
     id: 'sam',
@@ -28,7 +28,7 @@ export const NPCS: Record<NpcId, NpcDisplay> = {
     emoji: '🌱',
     location: 'garden',
     colorVar: 'var(--color-sam)',
-    accent: '#1d4ed8',
+    accent: '#36c5e0',
   },
   jules: {
     id: 'jules',
@@ -37,7 +37,7 @@ export const NPCS: Record<NpcId, NpcDisplay> = {
     emoji: '🍵',
     location: 'teastall',
     colorVar: 'var(--color-jules)',
-    accent: '#7e22ce',
+    accent: '#e85fc0',
   },
 }
 

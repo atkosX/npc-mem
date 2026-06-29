@@ -14,10 +14,43 @@ export interface GameState {
   relationships: Record<NpcId, Relationship>
   flags: Record<string, boolean>
   notebook: string[]
+  cluesFound: string[]
   ledger: MemoryEvent[]
   convo: Record<NpcId, string>
-  ended: boolean
-  ending: Ending | null
+  solved: boolean | null
+  result: Result | null
+}
+
+export interface Clue {
+  id: string
+  title: string
+  icon: string
+  hint: string
+}
+
+export interface Theory {
+  id: string
+  text: string
+}
+
+export interface Catalog {
+  clues: Clue[]
+  theories: Theory[]
+}
+
+export interface Result {
+  solvedCorrectly: boolean
+  chosenTheory: string
+  correctTheory: string
+  correctText: string
+  score: number
+  stars: number
+  maxStars: number
+  cluesFound: number
+  totalClues: number
+  betrayed: boolean
+  rank: { title: string; icon: string; blurb: string }
+  narrative: Ending
 }
 
 export interface Choice {

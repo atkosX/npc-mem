@@ -3,9 +3,12 @@ import { NPCS } from '../data/npcs'
 import { MapView } from '../components/MapView'
 import { NPCPanel } from '../components/NPCPanel'
 import { DialogueBox } from '../components/DialogueBox'
-import { CaseNotebook } from '../components/CaseNotebook'
+import { EvidenceBoard } from '../components/EvidenceBoard'
 import { MemoryDebugger } from '../components/MemoryDebugger'
 import { HowItWorks } from '../components/HowItWorks'
+import { ClueToasts } from '../components/ClueToast'
+import { DayBeat } from '../components/DayBeat'
+import type { NpcId } from '../types'
 
 export function GamePage() {
   const g = useGame()
@@ -14,53 +17,67 @@ export function GamePage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <TopBar />
+      <HUD />
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-6 py-7">
         {selectedNpc ? <Conversation npcId={selectedNpc} /> : <MapView />}
       </main>
 
       <BottomBar />
 
       {g.error && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-suspicion/30 bg-suspicion/10 px-4 py-2 text-sm text-suspicion shadow">
-          {g.error}{' '}
-          <button onClick={g.clearError} className="ml-2 underline">
-            dismiss
-          </button>
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-bad/20 px-4 py-2 font-mono text-sm text-bad shadow-xl backdrop-blur">
+          {g.error} <button onClick={g.clearError} className="ml-2 underline">dismiss</button>
         </div>
       )}
 
-      {g.showNotebook && <CaseNotebook />}
+      <ClueToasts />
+      {g.showNotebook && <EvidenceBoard />}
       {g.showDebugger && <MemoryDebugger />}
       {g.showHowItWorks && <HowItWorks />}
+      {g.showDayBeat && <DayBeat />}
     </div>
   )
 }
 
-function TopBar() {
-  const { state, toggleHowItWorks, startGame } = useGame()
+function HUD() {
+  const { state, catalog, goToSolve, toggleHowItWorks, startGame } = useGame()
+  const found = state?.cluesFound.length ?? 0
+  const total = catalog?.clues.length ?? 5
+
   return (
-    <header className="sticky top-0 z-30 border-b border-edge bg-paper/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
-        <span className="font-display text-lg text-ink">Neighbourhood Echoes</span>
-        <span
-          className="rounded-full bg-ink px-3 py-1 font-mono text-xs uppercase tracking-wider text-paper"
-        >
+    <header className="sticky top-0 z-30 border-b border-line bg-grape/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
+        <span className="font-display text-lg font-bold text-text">
+          Neighbourhood <span className="text-gold">Echoes</span>
+        </span>
+        <span className="rounded-full bg-violet/20 px-3 py-0.5 font-display text-xs font-bold text-violet">
           Day {state?.day}
         </span>
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            onClick={() => toggleHowItWorks(true)}
-            className="font-mono text-xs uppercase tracking-wider text-ink-soft hover:text-ink"
-          >
-            How it works
+
+        {/* clue progress */}
+        <div className="flex items-center gap-2">
+          <span className="font-display text-sm font-bold text-text">🔍 {found}/{total}</span>
+          <div className="flex gap-1">
+            {Array.from({ length: total }).map((_, i) => (
+              <span
+                key={i}
+                className="h-2.5 w-2.5 rounded-full transition-all"
+                style={{ background: i < found ? 'var(--color-gold)' : 'rgba(255,255,255,0.15)' }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={goToSolve} className="btn btn-gold px-4 py-1.5 text-sm">
+            ⚖️ Solve the Case
           </button>
-          <button
-            onClick={() => startGame(false)}
-            className="rounded-md border border-edge px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-soft hover:bg-paper-2"
-          >
-            ↻ Restart
+          <button onClick={() => toggleHowItWorks(true)} className="btn btn-soft px-3 py-1.5 text-xs">
+            ?
+          </button>
+          <button onClick={() => startGame(false)} className="btn btn-soft px-3 py-1.5 text-xs">
+            ↻
           </button>
         </div>
       </div>
@@ -68,36 +85,31 @@ function TopBar() {
   )
 }
 
-function Conversation({ npcId }: { npcId: import('../types').NpcId }) {
+function Conversation({ npcId }: { npcId: NpcId }) {
   const { backToMap, debug } = useGame()
   const hints = (debug[npcId] ?? []).slice(-4).reverse()
   const npc = NPCS[npcId]
 
   return (
-    <div className="animate-fade-up">
-      <button
-        onClick={backToMap}
-        className="mb-4 font-mono text-xs uppercase tracking-wider text-ink-soft hover:text-ink"
-      >
-        ← Back to map
+    <div className="animate-rise">
+      <button onClick={backToMap} className="chip mb-4 text-dim hover:text-text">
+        ← back to Maple Street
       </button>
 
       <div className="grid gap-5 lg:grid-cols-[260px_1fr_240px]">
         <NPCPanel npcId={npcId} />
         <DialogueBox />
-        <aside className="flex flex-col gap-3 rounded-2xl border border-edge bg-white/60 p-4">
-          <h4 className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-            What {npc.name.split(' ')[0]} remembers
-          </h4>
+        <aside className="gpanel flex flex-col gap-3 p-4">
+          <h4 className="chip text-dim">🧠 What {npc.name.split(' ')[0]} remembers</h4>
           {hints.length === 0 ? (
-            <p className="text-xs text-ink-soft">Nothing notable yet.</p>
+            <p className="font-body text-xs text-dim">Nothing notable yet.</p>
           ) : (
             hints.map((m) => (
-              <div key={m.id} className="rounded-lg border border-edge bg-paper p-2 text-[12px] leading-snug text-ink">
-                <span className="font-mono text-[10px] uppercase" style={{ color: npc.accent }}>
+              <div key={m.id} className="rounded-xl bg-white/6 p-2.5">
+                <span className="font-mono text-[10px] font-bold uppercase" style={{ color: npc.colorVar }}>
                   {m.type}
                 </span>
-                <p>{m.canonicalText}</p>
+                <p className="font-body text-[12px] leading-snug text-text/85">{m.canonicalText}</p>
               </div>
             ))
           )}
@@ -108,44 +120,25 @@ function Conversation({ npcId }: { npcId: import('../types').NpcId }) {
 }
 
 function BottomBar() {
-  const { state, toggleNotebook, toggleDebugger, advanceDay, concludeGame, loading } = useGame()
+  const { state, toggleNotebook, toggleDebugger, advanceDay, loading } = useGame()
   const day = state?.day ?? 1
+  const clues = state?.cluesFound.length ?? 0
 
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-edge bg-paper/90 backdrop-blur">
+    <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-grape/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-3">
-        <button
-          onClick={toggleNotebook}
-          className="rounded-lg border border-edge bg-white/70 px-4 py-2 text-sm text-ink hover:bg-paper-2"
-        >
-          📓 Case Notebook{state?.notebook.length ? ` (${state.notebook.length})` : ''}
+        <button onClick={toggleNotebook} className="btn btn-soft px-4 py-2 text-sm">
+          📋 Evidence{clues ? ` · ${clues}` : ''}
         </button>
-        <button
-          onClick={toggleDebugger}
-          className="rounded-lg border border-edge bg-white/70 px-4 py-2 text-sm text-ink hover:bg-paper-2"
-        >
+        <button onClick={toggleDebugger} className="btn btn-soft px-4 py-2 text-sm">
           🧠 Memory Debugger
         </button>
 
-        <div className="ml-auto">
-          {day < 2 ? (
-            <button
-              onClick={advanceDay}
-              disabled={loading}
-              className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
-            >
-              🌙 Advance to Day 2
-            </button>
-          ) : (
-            <button
-              onClick={concludeGame}
-              disabled={loading}
-              className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-paper transition hover:bg-accent disabled:opacity-60"
-            >
-              ⚖️ Conclude the Case
-            </button>
-          )}
-        </div>
+        {day < 2 && (
+          <button onClick={advanceDay} disabled={loading} className="btn btn-pop ml-auto px-5 py-2 text-sm disabled:opacity-60">
+            🌙 End Day 1 → Day 2
+          </button>
+        )}
       </div>
     </footer>
   )

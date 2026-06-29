@@ -49,6 +49,10 @@ class ChooseRequest(BaseModel):
     choiceId: str
 
 
+class SolveRequest(BaseModel):
+    theoryId: str
+
+
 # Legacy debug models (kept for back-compat with the Phase-1 tools).
 class DialogueRequest(BaseModel):
     npc_id: str
@@ -82,6 +86,12 @@ async def list_npcs():
 @app.get("/locations")
 async def list_locations():
     return list(story.LOCATIONS.values())
+
+
+@app.get("/game/catalog")
+async def game_catalog():
+    """Clue catalog + accusation theories for the UI. Never leaks the solution."""
+    return {"clues": story.clues_catalog(), "theories": story.THEORIES}
 
 
 # --------------------------------------------------------------------------- #
@@ -129,12 +139,12 @@ async def game_choose(req: ChooseRequest):
     if req.npcId not in NPCS:
         raise HTTPException(status_code=404, detail=f"Unknown npcId: {req.npcId}")
     try:
-        state = await gamestate.apply_choice(req.npcId, req.choiceId)
+        state, new_clues = await gamestate.apply_choice(req.npcId, req.choiceId)
     except PermissionError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except KeyError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"state": state, "nextNodeId": state["convo"][req.npcId]}
+    return {"state": state, "nextNodeId": state["convo"][req.npcId], "newClues": new_clues}
 
 
 @app.post("/day/advance")
@@ -143,10 +153,10 @@ async def day_advance():
     return await gamestate.advance_day()
 
 
-@app.post("/game/conclude")
-async def game_conclude():
-    """End the game and compute the ending from final flags (plan §9)."""
-    return gamestate.conclude()
+@app.post("/game/solve")
+async def game_solve(req: SolveRequest):
+    """Make the accusation and get the scored result (clues + correctness + trust)."""
+    return gamestate.solve(req.theoryId)
 
 
 @app.get("/debug/memories/{npc_id}")

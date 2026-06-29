@@ -54,12 +54,21 @@ def reset():
     return client.post("/game/start", json={"reseed": False}).json()
 
 
+def solve(theory):
+    return client.post("/game/solve", json={"theoryId": theory}).json()
+
+
 print("\n[1] Start / initial state")
 st = reset()
 check("day starts at 1", st["day"] == 1)
 check("maya trust seeded 50", st["relationships"]["maya"]["trust"] == 50)
 check("no flags set", not any(st["flags"].values()))
-check("empty ledger + notebook", st["ledger"] == [] and st["notebook"] == [])
+check("empty ledger + notebook + clues", st["ledger"] == [] and st["notebook"] == [] and st["cluesFound"] == [])
+
+print("\n[1b] Catalog never leaks the solution")
+cat = client.get("/game/catalog").json()
+check("catalog has 5 clues + 4 theories", len(cat["clues"]) == 5 and len(cat["theories"]) == 4)
+check("no theory is flagged correct", all("correct" not in t for t in cat["theories"]))
 
 print("\n[2] Locked choices hidden before gate met")
 ids = {c["id"] for c in talk("maya")["choices"]}
@@ -79,6 +88,8 @@ st = r["state"]
 check("mayaRevealedLostKey flag set", st["flags"]["mayaRevealedLostKey"])
 check("secret event written to ledger", any(e["type"] == "secret" for e in st["ledger"]))
 check("notebook records the admission", any("lost it" in n for n in st["notebook"]))
+check("clue 'maya_lost_key' collected", "maya_lost_key" in st["cluesFound"])
+check("newClues surfaced for the toast", "maya_lost_key" in r["newClues"])
 check("advanced to reveal node", r["nextNodeId"] == "maya_reveal_key")
 
 print("\n[4] Promise (the secret-keeping setup)")
@@ -118,10 +129,15 @@ dbg_j = client.get("/debug/memories/jules").json()
 check("jules debug never shows maya's private secret",
       not any(e["type"] == "secret" and e["ownerNpc"] == "maya" for e in dbg_j["memories"]))
 
-print("\n[9] Conclude -> broken_trust ending")
-st = client.post("/game/conclude").json()
-check("ended", st["ended"])
-check("ending is broken_trust", st["ending"]["id"] == "broken_trust")
+print("\n[9] Solve correctly but betrayed -> 'Sharp Eyes, Cold Heart'")
+st = solve("accident")
+res = st["result"]
+check("marked solved", st["solved"] is True)
+check("solvedCorrectly", res["solvedCorrectly"])
+check("narrative is broken_trust", res["narrative"]["id"] == "broken_trust")
+check("2 stars (correct but betrayed)", res["stars"] == 2)
+check("rank is cold_detective", res["rank"]["title"] == "Sharp Eyes, Cold Heart")
+check("wrong theory would be cold case", solve("sam_did_it")["result"]["rank"]["title"] == "Cold Case")
 
 print("\n[10] cognee-generation path returns the generated line + authored emotion")
 set_recall([SimpleNamespace(text="Oh, you must be the new neighbour. Welcome to Maple Street.")])
@@ -148,8 +164,11 @@ choose("sam", "sam_note_latch")
 st = client.post("/day/advance").json()
 check("day2 maya branches to trust (secret kept)", st["convo"]["maya"] == "maya_d2_trust")
 check("warm clue line, not confront", "thank you" in talk("maya")["npcLine"].lower())
-choose("maya", "maya_d2_take_clue")
-check("ending is peaceful_resolution", client.post("/game/conclude").json()["ending"]["id"] == "peaceful_resolution")
+st = choose("maya", "maya_d2_take_clue")["state"]
+check("4 clues collected (kept secret path)", len(st["cluesFound"]) == 4)
+res = solve("accident")["result"]
+check("narrative is peaceful_resolution", res["narrative"]["id"] == "peaceful_resolution")
+check("3 stars + Hero rank", res["stars"] == 3 and res["rank"]["title"] == "Maple Street Hero")
 
 print(f"\n{'=' * 50}")
 if _failures:

@@ -8,25 +8,40 @@ export function DialogueBox() {
   const npc = NPCS[selectedNpc]
 
   return (
-    <div className="flex min-h-[320px] flex-col rounded-2xl border border-edge bg-white/70 p-6 shadow-sm paper-grain">
+    <div className="flex min-h-[340px] flex-col gap-4">
       {loading || !talk ? (
-        <div className="flex flex-1 items-center justify-center text-ink-soft">
-          <span className="animate-pulse font-mono text-sm">{npc.name} is thinking…</span>
+        <div className="gcard flex flex-1 items-center justify-center px-6 py-12">
+          <span className="animate-pulse font-body text-sm font-semibold text-ink-dim">
+            {npc.name} is choosing their words…
+          </span>
         </div>
       ) : (
-        <div key={talk.nodeId} className="animate-fade-up flex flex-1 flex-col">
-          <div className="mb-2 flex items-center gap-2 text-xs font-mono uppercase tracking-wider">
-            <span style={{ color: npc.accent }}>{npc.name}</span>
-            <span className="text-ink-soft">· {EMOTION_LABEL[talk.emotion] ?? talk.emotion}</span>
-            <SourceBadge source={talk.source} />
+        <>
+          {/* Speech bubble */}
+          <div key={talk.nodeId} className="gcard animate-pop relative px-6 py-5">
+            <span
+              className="absolute -top-2 left-8 h-4 w-4 rotate-45 bg-cream"
+              style={{ borderTopLeftRadius: 2 }}
+            />
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-2xl">{npc.emoji}</span>
+              <span className="font-display text-base font-bold" style={{ color: npc.accent }}>
+                {npc.name}
+              </span>
+              <span className="font-body text-xs font-semibold text-ink-dim">
+                {EMOTION_LABEL[talk.emotion] ?? talk.emotion}
+              </span>
+              <SourceBadge source={talk.source} />
+            </div>
+            <p className="font-body text-xl font-semibold leading-relaxed text-ink">“{talk.npcLine}”</p>
           </div>
 
-          <p className="font-display text-xl leading-relaxed text-ink">“{talk.npcLine}”</p>
-
-          <div className="mt-6 flex flex-col gap-2">
+          {/* Choices */}
+          <div className="flex flex-col gap-2">
             {talk.choices.length === 0 ? (
-              <p className="font-mono text-xs text-ink-soft">
-                — {npc.name} has nothing more to say right now. Visit someone else or advance the day.
+              <p className="rounded-2xl bg-white/6 px-4 py-3 font-body text-sm text-dim">
+                💬 {npc.name.split(' ')[0]} has nothing more to say. Visit someone else, advance the day,
+                or solve the case.
               </p>
             ) : (
               talk.choices.map((c, i) => (
@@ -41,7 +56,7 @@ export function DialogueBox() {
               ))
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )
@@ -53,16 +68,16 @@ function SourceBadge({ source }: { source: 'cognee' | 'fallback' }) {
     <span
       title={
         live
-          ? 'Line generated through Cognee recall from this NPC’s memory'
+          ? 'Generated through Cognee recall from this neighbour’s memory'
           : 'Authored fallback line (Cognee unavailable or guardrail tripped)'
       }
-      className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-mono"
+      className="ml-auto rounded-full px-2 py-0.5 font-mono text-[10px] font-bold"
       style={{
-        background: live ? 'rgba(21,128,61,0.12)' : 'rgba(180,83,9,0.12)',
-        color: live ? 'var(--color-trust)' : 'var(--color-accent)',
+        background: live ? 'rgba(67,209,122,0.16)' : 'rgba(255,201,77,0.18)',
+        color: live ? '#1f9e54' : '#a9791a',
       }}
     >
-      {live ? 'COGNEE' : 'TEMPLATE'}
+      {live ? '● COGNEE' : '○ SCRIPT'}
     </span>
   )
 }

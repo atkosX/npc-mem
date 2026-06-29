@@ -17,13 +17,14 @@ export function ChoiceButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="group flex w-full items-start gap-3 rounded-lg border border-edge bg-paper px-4 py-3 text-left transition
-                 hover:border-accent hover:bg-paper-2 disabled:cursor-not-allowed disabled:opacity-50"
+      className="group flex w-full items-center gap-3 rounded-2xl bg-white/6 px-4 py-3 text-left transition
+                 hover:translate-x-1 hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink font-mono text-xs text-paper group-hover:bg-accent">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 font-display text-sm font-bold text-dim transition group-hover:bg-coral group-hover:text-white">
         {busy ? '…' : index + 1}
       </span>
-      <span className="text-[15px] leading-snug text-ink">{choice.text}</span>
+      <span className="font-body text-[15px] font-semibold leading-snug text-text">{choice.text}</span>
+      <span className="ml-auto text-dim opacity-0 transition group-hover:opacity-100">→</span>
     </button>
   )
 }

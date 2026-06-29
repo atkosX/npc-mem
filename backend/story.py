@@ -159,6 +159,7 @@ NODES = {
              "requires": {"minRel": {"maya.trust": 65}},
              "effects": {
                  "flags": {"mayaRevealedLostKey": True},
+                 "clues": ["maya_lost_key"],
                  "notebook": ["Maya admits she borrowed the community garden shed key and lost it."],
                  "events": [_secret_event()],
              }},
@@ -231,6 +232,7 @@ NODES = {
              "next": "maya_d2_trust",
              "effects": {
                  "flags": {"mayaRevealedSamClue": True},
+                 "clues": ["sam_found_key"],
                  "notebook": ["Maya reveals Sam found the lost key on the path later — he never broke in; the latch was already loose."],
              }},
         ],
@@ -263,6 +265,7 @@ NODES = {
              "next": "sam_open",
              "effects": {
                  "flags": {"samSharedAlibi": True},
+                 "clues": ["latch_broken", "sam_near_shed"],
                  "notebook": ["Sam: the shed latch was already loose; he also found a brass key on the path."],
                  "events": [_sam_clue_event()],
              }},
@@ -296,7 +299,11 @@ NODES = {
         "fallback": "Ahh, the new face! Sit, sit. So — what do YOU make of the shed business? I have theories. I always have theories.",
         "choices": [
             {"id": "jules_smalltalk", "text": "What's the word around Maple Street?",
-             "next": "jules_gossip", "effects": {}},
+             "next": "jules_gossip",
+             "effects": {
+                 "clues": ["jules_rumour"],
+                 "notebook": ["Jules is spreading a rumour that a newcomer was lurking near the shed."],
+             }},
             # The betrayal — only available once Maya has actually confided the secret.
             {"id": "jules_tell_secret", "text": "Between us... Maya lost the shed key. That's the whole story.",
              "next": "jules_delighted",
@@ -432,3 +439,102 @@ NODE_EMOTION = {
 
 for _nid, _emo in NODE_EMOTION.items():
     NODES[_nid]["emotion"] = _emo
+
+
+# --------------------------------------------------------------------------- #
+# Clues — the collectibles the player gathers to solve the case (the win goal).
+# Choice effects grant clue ids (see "clues" above); the UI shows progress X/5.
+# --------------------------------------------------------------------------- #
+
+CLUES = {
+    "maya_lost_key": {
+        "title": "Maya lost the shed key",
+        "icon": "🔑",
+        "hint": "Earn Maya's trust at the Bakery",
+    },
+    "latch_broken": {
+        "title": "The latch was already broken",
+        "icon": "🔓",
+        "hint": "Talk it through with Sam at the Garden",
+    },
+    "sam_near_shed": {
+        "title": "Sam was nearby — but didn't break in",
+        "icon": "👣",
+        "hint": "Talk it through with Sam at the Garden",
+    },
+    "sam_found_key": {
+        "title": "Sam later found the lost key",
+        "icon": "🧲",
+        "hint": "Keep Maya's trust into Day 2",
+    },
+    "jules_rumour": {
+        "title": "Jules is spreading a false rumour",
+        "icon": "🗣️",
+        "hint": "Hear the gossip at the Tea Stall",
+    },
+}
+
+
+def clues_catalog() -> list[dict]:
+    return [{"id": k, **v} for k, v in CLUES.items()]
+
+
+# --------------------------------------------------------------------------- #
+# The accusation — pick what really happened. SOLUTION is never sent to the client.
+# --------------------------------------------------------------------------- #
+
+THEORIES = [
+    {"id": "sam_did_it", "text": "Sam broke in — he was right there that morning."},
+    {"id": "newcomer", "text": "A newcomer forced the lock, just like Jules says."},
+    {"id": "accident",
+     "text": "No one broke in. The latch was already broken, Maya lost the key, and Sam found it. It was a misunderstanding."},
+    {"id": "maya_staged", "text": "Maya staged the whole thing for sympathy."},
+]
+SOLUTION = "accident"
+
+RANKS = {
+    "hero": {"title": "Maple Street Hero", "icon": "🏆",
+             "blurb": "You cracked the case AND kept the neighbourhood's trust. Nobody does it better."},
+    "cold_detective": {"title": "Sharp Eyes, Cold Heart", "icon": "🕵️",
+                       "blurb": "You found the truth — but you broke a promise to get there, and the street remembers."},
+    "closed": {"title": "Case Closed", "icon": "🔍",
+               "blurb": "You solved it. A few more clues and a little more trust would have made it spotless."},
+    "cold_case": {"title": "Cold Case", "icon": "❄️",
+                  "blurb": "Wrong call. The real story slipped away with the rumours."},
+}
+
+
+def compute_result(state: dict, theory_id: str) -> dict:
+    """Score the accusation: clues found + correct solution + trust kept."""
+    n = len(state["cluesFound"])
+    total = len(CLUES)
+    correct = theory_id == SOLUTION
+    betrayed = bool(state["flags"].get("playerToldJules"))
+    maya_trust = state["relationships"]["maya"]["trust"]
+
+    score = n * 10 + (40 if correct else 0) + (0 if betrayed else 20) + (10 if maya_trust >= 70 else 0)
+
+    if correct and not betrayed and n >= 4:
+        stars, rank = 3, RANKS["hero"]
+    elif correct and betrayed:
+        stars, rank = 2, RANKS["cold_detective"]
+    elif correct:
+        stars, rank = 2, RANKS["closed"]
+    else:
+        stars, rank = (1 if n >= 2 else 0), RANKS["cold_case"]
+
+    narrative = compute_ending(state)
+    return {
+        "solvedCorrectly": correct,
+        "chosenTheory": theory_id,
+        "correctTheory": SOLUTION,
+        "correctText": next(t["text"] for t in THEORIES if t["id"] == SOLUTION),
+        "score": score,
+        "stars": stars,
+        "maxStars": 3,
+        "cluesFound": n,
+        "totalClues": total,
+        "betrayed": betrayed,
+        "rank": rank,
+        "narrative": narrative,
+    }
